@@ -5,6 +5,43 @@ person's record (career first), kept as files they own. The profile itself is ne
 in the clear. Only `profile.age` is committed: the whole profile, every version, encrypted with
 [age](https://age-encryption.org) to the keys in `.openself/recipients`.
 
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph mac["Your machine"]
+    direction TB
+    app["make serve<br/>the web app"]
+    ai["AI assistant<br/>follows AGENTS.md"]
+    profile[("profile/<br/>the readable profile<br/>with its own git history")]
+    age["profile.age<br/>everything, encrypted"]
+    guard{{"guard<br/>git hooks: pre-commit, pre-push"}}
+    app -- "edit" --> profile
+    ai -- "edit, commit" --> profile
+    profile -- "make push<br/>encrypt with the public keys" --> age
+    age -- "make pull<br/>decrypt with the key" --> profile
+  end
+  subgraph gh["GitHub: this repository, can be public"]
+    remote["profile.age<br/>.openself/recipients<br/>README, Makefile, tools"]
+  end
+  subgraph bw["Bitwarden"]
+    key["Secure note<br/>OpenSelf age key"]
+  end
+  age -- "git push" --> guard
+  guard -- "only if nothing is unencrypted" --> remote
+  remote -- "git pull" --> age
+  key -. "only to decrypt<br/>asks for your master password" .-> age
+```
+
+- **`profile/`** is the profile you read and edit, with its own git history. It exists only on
+  your machine and is never committed to this repository.
+- **`make push`** packs all of it, every version, into one file and encrypts it to the public keys
+  in `.openself/recipients`: `profile.age`. That needs no secret, so an AI assistant can do it too.
+- **The guard** checks every commit and push to this repository and refuses anything that is not
+  encrypted. Only `profile.age`, the public keys and the tools ever reach GitHub.
+- **`make pull`** downloads `profile.age` and decrypts it into `profile/`. Only that needs the
+  secret key, from Bitwarden (or the Keychain); it asks for your master password.
+
 ## Start
 
 1. On GitHub: **Use this template** to make your own repository (public is fine, it only ever
