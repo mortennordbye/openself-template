@@ -71,6 +71,8 @@ On another machine, see [On a new machine](#on-a-new-machine).
 | `make push` | check, encrypt and upload |
 | `make pull` | download and decrypt |
 | `make check` | the guard and the profile lint; the prompts are open questions |
+| `make vault NAME=docs` | a vault: a folder of any files, pushed encrypted next to the profile |
+| `make vaults` | the vaults, and which have changes to push |
 
 `make` with no target lists them all; each is a thin wrapper around `./self`.
 
@@ -78,15 +80,26 @@ Tools that read profiles (CV builders, assistants) point at the decrypted `profi
 assistants follow `AGENTS.md`: they edit and commit in `profile/` and may push, which needs only
 the public keys, but never decrypt or touch the key.
 
+## Vaults: documents, images, PDFs
+
+The home keeps more than the profile. `make vault NAME=docs` makes `docs/`, a folder for any
+files (certificates, diplomas, CVs, photos), versioned with git and kept out of this repository
+like `profile/`. `make push` encrypts every version of it into `docs.age` next to `profile.age`,
+and `make pull` on another machine brings it back. Only a vault that changed is uploaded again.
+Tools use their own vault: OpenVita's `make connect-home` keeps its CVs and applications in `cv/`.
+
+A file over 100 MB cannot go to GitHub, so split large collections into more vaults. Every version
+stays in the history, so a vault suits documents you keep, not media that changes every day.
+
 ## Nothing unencrypted is ever published
 
 `./self guard` runs as git pre-commit and pre-push hooks, installed by every push and pull, and
 again on every outgoing commit before each upload. It refuses a commit or push with anything from
-`profile/`, a file that is not part of a home (add safe ones to `.openself/allow`), a README or
+`profile/` or a vault, a file that is not part of a home (add safe ones to `.openself/allow`), a README or
 other allowed file that quotes your profile (your name, email, phone, employers, customers), a
-`profile.age` that is not encrypted, or anything but public keys in `.openself/recipients`. What
-it cannot read, it refuses. `make push` commits only `profile.age`, the recipients and
-`.gitignore`, whatever else you have staged. Run `make check` to see it for yourself.
+`profile.age` or vault file that is not encrypted, or anything but public keys in `.openself/recipients`. What
+it cannot read, it refuses. `make push` commits only the `.age` files, the recipients,
+`.openself/config` and `.gitignore`, whatever else you have staged. Run `make check` to see it for yourself.
 
 The same check runs on GitHub (`.github/workflows/guard.yml`) on every push and pull request, with
 the guard taken from `main`, so a pull request cannot change what checks it. A push that skipped
