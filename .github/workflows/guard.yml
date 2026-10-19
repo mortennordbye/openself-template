@@ -1,0 +1,37 @@
+# The same guard as the local git hooks, run on GitHub: a push that skipped the hooks
+# (--no-verify, a machine without them) turns red here, and GitHub emails you.
+name: guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Nothing unencrypted in any commit
+        run: ./self guard --history
+      - name: No recipient added without you knowing
+        # A new key in .openself/recipients can read every push after it. Red here means: check
+        # that the key is yours (a new machine). If it is not, remove it and push again.
+        env:
+          BEFORE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          case "$BEFORE" in ""|0000000000000000000000000000000000000000) exit 0;; esac
+          added=$(git diff "$BEFORE" HEAD -- .openself/recipients | grep '^+age1' || true)
+          if [ -n "$added" ]; then
+            echo "::error::a recipient was added to .openself/recipients; check that it is yours"
+            echo "$added" | cut -c1-40
+            exit 1
+          fi
