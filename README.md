@@ -81,9 +81,20 @@ the public keys, but never decrypt or touch the key.
 ## Nothing unencrypted is ever published
 
 `./self guard` runs as git pre-commit and pre-push hooks, installed by every push and pull, and
-again before each upload. It refuses a commit or push with anything from `profile/`, a file that
-is not part of a home (add safe ones to `.openself/allow`), a `profile.age` that is not encrypted,
-or anything but public keys in `.openself/recipients`. Run `make check` to see it for yourself.
+again on every outgoing commit before each upload. It refuses a commit or push with anything from
+`profile/`, a file that is not part of a home (add safe ones to `.openself/allow`), a README or
+other allowed file that quotes your profile (your name, email, phone, employers, customers), a
+`profile.age` that is not encrypted, or anything but public keys in `.openself/recipients`. What
+it cannot read, it refuses. `make push` commits only `profile.age`, the recipients and
+`.gitignore`, whatever else you have staged. Run `make check` to see it for yourself.
+
+The same check runs on GitHub (`.github/workflows/guard.yml`) on every push, so a push that
+skipped the hooks turns red and GitHub emails you. It also turns red when a key is added to
+`.openself/recipients`, so you know about every new reader.
+
+A key in `.openself/recipients` is only used once you have approved it on this machine. A key that
+arrives with a pull (from another machine, or from someone who should not be adding one) stops
+`make push` with the key listed. If it is yours, `make trust`; if not, remove it.
 
 ## Your key
 
@@ -119,8 +130,9 @@ make pull
 ```
 
 Without Bitwarden: `make keys` makes a new key for this machine. Add the public key it prints to
-`.openself/recipients` from a machine that can already decrypt, `make push` there, then `make pull`
-here.
+`.openself/recipients` from a machine that can already decrypt, `make trust` and `make push` there,
+then `make pull` here. The new machine's key is the only one it ever made, so `make trust` there
+should list only that key; anything else, stop and find out what it is.
 
 ### When something goes wrong
 
@@ -129,6 +141,9 @@ here.
   `make serve`.
 - *Bitwarden already has a note named … with a different key*: there are two keys. Do not
   overwrite either; find out which one opens `profile.age` (`make pull` with each) first.
+- *not encrypting: .openself/recipients has keys this machine has not approved*: someone or
+  something added a key. If it is one of your machines, `make trust`. If you do not know it,
+  remove it from `.openself/recipients` and push; it never got anything encrypted to it.
 - *openself guard: refusing …*: read the list it prints. It means a commit or push would have
   published something unencrypted or unexpected. Remove that from the commit; never use
   `--no-verify`.
