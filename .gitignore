@@ -1,0 +1,4 @@
+# The decrypted profile never goes in this repository; only profile.age does.
+/profile/
+.openself/pushed
+.DS_Store
