@@ -1,10 +1,13 @@
-# The same guard as the local git hooks, run on GitHub: a push that skipped the hooks
-# (--no-verify, a machine without them) turns red here, and GitHub emails you.
+# The same guard as the local git hooks, run on GitHub. With main locked by a ruleset that requires
+# this check, nothing reaches main unless it passes; on other branches a bad push turns red and
+# GitHub emails you. The tools always come from main, so a pull request cannot change what checks
+# it, and nothing from the pull request is ever run.
 name: guard
 
 on:
   push:
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -13,25 +16,37 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: The guard, from main
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
           submodules: true
+          path: tools
+          persist-credentials: false
+      - name: The commits to check
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          path: home
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Nothing unencrypted in any commit
-        run: ./self guard --history
+        run: PYTHONPATH=tools/openself python3 -m openself guard --history home
       - name: No recipient added without you knowing
-        # A new key in .openself/recipients can read every push after it. Red here means: check
-        # that the key is yours (a new machine). If it is not, remove it and push again.
+        # A new key in .openself/recipients can read every push after it. If it is yours (a new
+        # machine), add the label new-recipient to the pull request. If not, remove it.
+        if: github.event_name == 'pull_request_target'
         env:
-          BEFORE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'new-recipient') }}
         run: |
-          case "$BEFORE" in ""|0000000000000000000000000000000000000000) exit 0;; esac
-          added=$(git diff "$BEFORE" HEAD -- .openself/recipients | grep '^+age1' || true)
+          added=$(git -C home diff "$BASE" HEAD -- .openself/recipients | grep '^+age1' || true)
           if [ -n "$added" ]; then
-            echo "::error::a recipient was added to .openself/recipients; check that it is yours"
             echo "$added" | cut -c1-40
+            if [ "$APPROVED" = "true" ]; then echo "approved with the label new-recipient"; exit 0; fi
+            echo "::error::a recipient was added to .openself/recipients; if it is yours, add the label new-recipient"
             exit 1
           fi

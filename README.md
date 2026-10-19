@@ -88,9 +88,38 @@ other allowed file that quotes your profile (your name, email, phone, employers,
 it cannot read, it refuses. `make push` commits only `profile.age`, the recipients and
 `.gitignore`, whatever else you have staged. Run `make check` to see it for yourself.
 
-The same check runs on GitHub (`.github/workflows/guard.yml`) on every push, so a push that
-skipped the hooks turns red and GitHub emails you. It also turns red when a key is added to
-`.openself/recipients`, so you know about every new reader.
+The same check runs on GitHub (`.github/workflows/guard.yml`) on every push and pull request, with
+the guard taken from `main`, so a pull request cannot change what checks it. A push that skipped
+the hooks turns red and GitHub emails you. A pull request that adds a key to
+`.openself/recipients` stays red until you add the label `new-recipient` to it, so you know about
+every new reader.
+
+### Lock main (recommended)
+
+Make GitHub refuse anything on `main` that has not passed the guard there, even from you:
+
+```
+gh api -X PATCH repos/<you>/<your-repo> -F allow_auto_merge=true -F delete_branch_on_merge=true
+gh api -X POST repos/<you>/<your-repo>/rulesets --input - <<'JSON'
+{"name": "main: pull request with the guard green", "target": "branch", "enforcement": "active",
+ "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+ "rules": [{"type": "deletion"}, {"type": "non_fast_forward"},
+   {"type": "pull_request", "parameters": {"required_approving_review_count": 0,
+     "dismiss_stale_reviews_on_push": false, "require_code_owner_review": false,
+     "require_last_push_approval": false, "required_review_thread_resolution": false,
+     "allowed_merge_methods": ["merge", "squash"]}},
+   {"type": "required_status_checks", "parameters": {"strict_required_status_checks_policy": false,
+     "required_status_checks": [{"context": "guard", "integration_id": 15368}]}}]}
+JSON
+printf '# how make push uploads: through a pull request that merges itself once the guard passes\npush = pull-request\n' > .openself/config
+git add .openself/config && git commit -m "Push through pull requests"   # the last direct push; open a PR for it once main is locked
+```
+
+From then on `make push` sends the snapshot to the branch `openself/snapshot` and opens a pull
+request that GitHub merges by itself (a merge commit) once the guard passes; `make pull`
+fast-forwards to it. It needs the GitHub CLI (`brew install gh`, `gh auth login`). GitHub only
+offers content rules to organisation repositories, so other branches cannot be locked the same
+way: a bad push there is public, but it cannot reach `main`, and the check turns red.
 
 A key in `.openself/recipients` is only used once you have approved it on this machine. A key that
 arrives with a pull (from another machine, or from someone who should not be adding one) stops
