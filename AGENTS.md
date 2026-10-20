@@ -43,6 +43,15 @@ For each one:
 4. `./self commit profile <id> "<what>" --actor claude`, then `make check`.
 5. `./self assistant done N --note "<what changed>"`. The web app shows the note.
 
+Every answer the owner saves to a `⚑` question in the web app also comes as a line:
+
+    ANSWER #N entry=<id> file=<path>: the owner answered «<question>» with «<answer>»
+
+The answer is already in the flag. Carry it into the entry where it settles something: a field, a
+date, a sentence that said otherwise. Add a `⚑ retting:` line when a value changes or is
+confirmed. If the answer is unclear or opens a new question, ask the owner here first. Then commit
+and mark it done as above.
+
 If the owner does not answer, ask once and wait. A request is never done by guessing.
 
 The guard (git pre-commit and pre-push hooks, installed by every push and pull, and run again
