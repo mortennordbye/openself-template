@@ -68,6 +68,7 @@ On another machine, see [On a new machine](#on-a-new-machine).
 | | |
 |---|---|
 | `make serve` | the web app: edit, history, the profile as of a date |
+| `make ai` | start Claude Code watching the web app's requests ("Be om intervju"); the AI chip turns green |
 | `make push` | check, encrypt and upload |
 | `make pull` | download and decrypt |
 | `make check` | the guard and the profile lint; the prompts are open questions |
