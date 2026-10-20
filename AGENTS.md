@@ -24,6 +24,27 @@ Never:
 - Change the guard workflow, rulesets or repository settings to get something through.
 - Copy profile or vault text into this repository, a commit message, an issue or a pull request.
 
+## Requests from the web app
+
+`make ai` starts Claude Code told to run `./self assistant watch` as a background monitor (another
+assistant can run it too). While it runs, the AI chip in the web app (`make serve`) is green. Each
+line it prints is a request the owner made there:
+
+    REQUEST #N entry=<id> file=<path>: <what the owner wants> | about: <the text it is about>
+
+For each one:
+
+1. Read the entry in `profile/` and its open `⚑` flags.
+2. Interview the owner here in the chat: short questions, one topic at a time, about what the
+   request names (a flag's question, a missing field, or the whole entry).
+3. Write the answers into the entry in the owner's own words (SPEC rules 0 to 2): their verbatim
+   words under the "own words" section, a resolved flag gets `(løst <date>)`/`(resolved <date>)`
+   and the answer in quotes. Never fill in anything the owner did not say.
+4. `./self commit profile <id> "<what>" --actor claude`, then `make check`.
+5. `./self assistant done N --note "<what changed>"`. The web app shows the note.
+
+If the owner does not answer, ask once and wait. A request is never done by guessing.
+
 The guard (git pre-commit and pre-push hooks, installed by every push and pull, and run again
 before each upload) refuses anything but the encrypted profile and its tools, and any file here
 that quotes the profile. If `make push` stops at a key that is not approved, tell the owner.
