@@ -5,33 +5,13 @@ person's record (career first), kept as files they own. The profile itself is ne
 in the clear. Only `profile.age` is committed: the whole profile, every version, encrypted with
 [age](https://age-encryption.org) to the keys in `.openself/recipients`.
 
+New to OpenSelf? The [documentation](https://mortennordbye.github.io/openself/) explains how the
+pieces fit, and [getting started](https://mortennordbye.github.io/openself/getting-started/) walks
+through setting up a repository like this one.
+
 ## How it works
 
-```mermaid
-flowchart LR
-  subgraph mac["Your machine"]
-    direction TB
-    app["make serve<br/>the web app"]
-    ai["AI assistant<br/>follows AGENTS.md"]
-    profile[("profile/<br/>the readable profile<br/>with its own git history")]
-    age["profile.age<br/>everything, encrypted"]
-    guard{{"guard<br/>git hooks: pre-commit, pre-push"}}
-    app -- "edit" --> profile
-    ai -- "edit, commit" --> profile
-    profile -- "make push<br/>encrypt with the public keys" --> age
-    age -- "make pull<br/>decrypt with the key" --> profile
-  end
-  subgraph gh["GitHub: this repository, can be public"]
-    remote["profile.age<br/>.openself/recipients<br/>README, Makefile, tools"]
-  end
-  subgraph bw["Bitwarden"]
-    key["Secure note<br/>OpenSelf age key"]
-  end
-  age -- "git push" --> guard
-  guard -- "only if nothing is unencrypted" --> remote
-  remote -- "git pull" --> age
-  key -. "only to decrypt<br/>asks for your master password" .-> age
-```
+<a href="https://raw.githubusercontent.com/mortennordbye/openself/main/docs/assets/diagrams/sync-encryption.png"><img alt="How a home works: profile/ is edited on your machine, make push bundles every version and encrypts it with age to the public keys, the guard lets only encrypted files and keys reach GitHub, and make pull on another machine decrypts it with the secret key" src="https://raw.githubusercontent.com/mortennordbye/openself/main/docs/assets/diagrams/sync-encryption.png" width="420"></a>
 
 - **`profile/`** is the profile you read and edit, with its own git history. It exists only on
   your machine and is never committed to this repository.
@@ -206,3 +186,9 @@ Your profile is never touched by an update; format changes come with a migration
 A public repository with only `profile.age` still shows that it exists, when you push, and the
 size in 64 KiB steps. Encrypted files stay in public history for good, so a key that leaks later
 opens every old version. Use a private repository if that matters more to you.
+
+## License
+
+The template files (`README.md`, `AGENTS.md`, `Makefile`, `self`, the workflow) are under the
+[MIT license](LICENSE). It does not cover your profile: what is inside `profile.age` and the vaults
+is yours.
